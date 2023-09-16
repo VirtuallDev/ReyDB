@@ -1,9 +1,10 @@
 use std::error::Error;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
+
+use crate::buffer::TCPBuffer;
+
 pub const CRLF: &str = "\r\n";
-const BUFF_SIZE: usize = 1024; // temporary
-pub type TempTCPBuffer = [u8; BUFF_SIZE]; // TODO: change the buffer to be dynamic
 
 pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
@@ -25,16 +26,14 @@ pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
 }
 
 async fn client_handler(stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut buffer: TempTCPBuffer = [0; BUFF_SIZE];
+    let mut buffer = TCPBuffer::new();
 
     loop {
-        let read_bytes = stream.read(&mut buffer).await?;
-        if read_bytes == 0 {
-            break;
-        }
+        buffer.read_to_buffer(stream).await; // reads to the buffer struct
+        println!("{:?}", buffer.get_mut_buffer());
+        let message_res = String::from_utf8_lossy(&buffer.get_mut_buffer());
 
-        let message = String::from_utf8_lossy(&buffer[..read_bytes]).to_owned();
-        let (command, args) = parse_command(&message).await?;
+        let (command, args) = parse_command(&message_res).await?;
 
         let response = match command {
             "ECHO" => args[2],
@@ -51,7 +50,5 @@ async fn client_handler(stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
 
 async fn parse_command(message: &str) -> Result<(&str, Vec<&str>), Box<dyn Error>> {
     let splited = message.split(CRLF).peekable().collect::<Vec<&str>>(); // \r\nCOMMAND\r\nDATA\r\n
-    println!("{:?}", &splited);
     Ok((splited[1], splited.to_owned()))
-    // Ok((command.to_owned(), args.to_owned()))
 }
