@@ -1,10 +1,9 @@
 use std::error::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-
 pub const CRLF: &str = "\r\n";
 const BUFF_SIZE: usize = 1024; // temporary
-pub type TCPBuffer = [u8; BUFF_SIZE]; // TODO: change the buffer to be dynamic
+pub type TempTCPBuffer = [u8; BUFF_SIZE]; // TODO: change the buffer to be dynamic
 
 pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
@@ -26,7 +25,7 @@ pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
 }
 
 async fn client_handler(stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut buffer: TCPBuffer = [0; BUFF_SIZE];
+    let mut buffer: TempTCPBuffer = [0; BUFF_SIZE];
 
     loop {
         let read_bytes = stream.read(&mut buffer).await?;

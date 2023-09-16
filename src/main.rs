@@ -2,6 +2,7 @@ use std::error::Error;
 
 use tcp::start_listener;
 
+mod buffer;
 mod tcp;
 
 #[tokio::main]
