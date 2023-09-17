@@ -15,6 +15,6 @@ def test():
             sock.sendall(command_bytes.encode())
 
             response = sock.recv(1024)
-            print(response.decode('utf-8'))
+            print(response.decode('utf-8').encode("unicode_escape"))
 
 test()
