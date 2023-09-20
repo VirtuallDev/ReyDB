@@ -4,8 +4,55 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::buffer::TCPBuffer;
+use crate::cache::{self, Cache};
 
 pub const CRLF: &str = "\r\n";
+
+pub struct TcpManager {
+    cache: Cache,
+    port: u16,
+    host: &'static str,
+    _tcp_listener: TcpListener,
+}
+
+impl TcpManager {
+    /// Constructor
+    pub async fn new(
+        cache: Cache,
+        port: u16,
+        host: &'static str,
+    ) -> Result<TcpManager, Box<dyn Error>> {
+        let temp_tcp_lis = TcpListener::bind((host, port)).await?;
+        Ok(TcpManager {
+            cache: cache,
+            port: port,
+            host: host,
+            _tcp_listener: temp_tcp_lis,
+        })
+    }
+
+    /// Start server running
+    pub async fn run_server(&mut self) -> Result<(), Box<dyn Error>> {
+        println!("Started ReyDB Server...");
+        println!("Connect using the CLI or API wrappers!");
+
+        while let Ok((mut stream, _)) = self._tcp_listener.accept().await {
+            tokio::spawn(async move {
+                let res = self.client_handler(&mut stream).await;
+                match res {
+                    Ok(_) => println!(),
+                    Err(_) => panic!(),
+                }
+            });
+        }
+
+        Ok(())
+    }
+
+    pub async fn client_handler(&mut self, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+}
 
 /// A listener function (WILL BE IMPROVED)
 pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
@@ -32,7 +79,7 @@ async fn client_handler(stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
     let mut buffer = TCPBuffer::new();
 
     loop {
-        buffer.read_to_buffer(stream).await; // reads to the buffer struct
+        let _ = buffer.read_to_buffer(stream).await; // reads to the buffer struct
         let message_res = String::from_utf8_lossy(buffer.get_mut_buffer());
 
         let (command, args) = parse_command(&message_res).await?;

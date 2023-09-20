@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use cache::Cache;
 use tcp::start_listener;
 
 mod buffer;
@@ -8,5 +9,7 @@ mod tcp;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    start_listener(5591).await
+    let cache = Cache::new();
+    let tcp_manager = tcp::TcpManager::new(cache, 5591, "0.0.0.0");
+    Ok(())
 }
