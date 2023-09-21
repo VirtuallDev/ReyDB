@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
@@ -7,11 +8,12 @@ use crate::cache::{self, Cache};
 
 pub const CRLF: &str = "\r\n";
 
-pub struct TcpManager {
+#[derive(Clone)]
+pub(crate) struct TcpManager {
     cache: Cache,
     port: u16,
     host: &'static str,
-    _tcp_listener: TcpListener,
+    _tcp_listener: Arc<Mutex<TcpListener>>,
 }
 
 impl TcpManager {
@@ -22,11 +24,12 @@ impl TcpManager {
         host: &'static str,
     ) -> Result<TcpManager, Box<dyn Error>> {
         let temp_tcp_lis = TcpListener::bind((host, port)).await?;
+        let listener = Arc::new(Mutex::new(temp_tcp_lis));
         Ok(TcpManager {
             cache: cache,
             port: port,
             host: host,
-            _tcp_listener: temp_tcp_lis,
+            _tcp_listener: listener,
         })
     }
 
@@ -35,14 +38,14 @@ impl TcpManager {
         println!("Started ReyDB Server...");
         println!("Connect using the CLI or API wrappers!");
 
-        while let Ok((mut stream, _)) = self._tcp_listener.accept().await {
-            tokio::spawn(async move {
-                let res = self.client_handler(&mut stream).await;
-                match res {
-                    Ok(_) => println!(),
-                    Err(_) => panic!(),
-                }
-            });
+        let borrowed_tcp = &self._tcp_listener.lock().unwrap();
+        let mut borrowed_self = self.clone();
+        while let Ok((mut stream, _)) = borrowed_tcp.accept().await {
+            let res = borrowed_self.client_handler(&mut stream).await;
+            match res {
+                Ok(_) => println!("Received user connection succesfully"),
+                Err(err) => panic!("{}", err),
+            }
         }
 
         Ok(())
@@ -51,26 +54,6 @@ impl TcpManager {
     pub async fn client_handler(&mut self, stream: &mut TcpStream) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
-}
-
-/// A listener function (WILL BE IMPROVED)
-pub async fn start_listener(port: u16) -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(("0.0.0.0", port)).await?;
-
-    println!("Started ReyDB server...");
-    println!("Connect using the CLI tool or API handlers!");
-
-    while let Ok((mut stream, _)) = listener.accept().await {
-        tokio::spawn(async move {
-            let res = client_handler(&mut stream).await;
-            match res {
-                Ok(_) => println!(),
-                Err(e) => panic!("{}", e),
-            }
-        });
-    }
-
-    Ok(())
 }
 
 /// A simple client handler that handles the conversation between the server and the client (WILL BE IMPROVED)

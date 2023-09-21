@@ -1,19 +1,34 @@
-use std::error::Error;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-type CacheItem = Vec<u8>;
-
-pub struct Cache {
-    _cached_resps: Vec<CacheItem>,
+#[derive(Clone)]
+pub struct CacheItem {
+    pub value: Vec<u8>,
+    pub expires_at: SystemTime,
 }
 
-impl Cache {
-    pub fn new() -> Cache {
-        Cache {
-            _cached_resps: vec![],
+pub const EXPIRATION_TIME: u64 = (24 * 60) * 60;
+
+impl CacheItem {
+    pub fn from(buffer: Vec<u8>) -> CacheItem {
+        CacheItem {
+            value: buffer.clone(),
+            expires_at: SystemTime::now() + Duration::from_secs(EXPIRATION_TIME),
         }
     }
 
-    pub fn save_response(&mut self, data: Vec<u8>) {
-        self._cached_resps.push(data);
+    /// This function checks if the cache item passed the expiration date
+    pub fn is_expired(&mut self) -> bool {
+        match self.expires_at.duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(durr) => durr < SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
+            Err(_) => false,
+        }
+    }
+}
+#[derive(Clone)]
+pub struct Cache {}
+
+impl Cache {
+    pub fn new() -> Cache {
+        Cache {}
     }
 }
