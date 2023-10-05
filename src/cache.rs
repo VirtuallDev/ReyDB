@@ -6,13 +6,14 @@ pub struct CacheItem {
     pub expires_at: SystemTime,
 }
 
-pub const EXPIRATION_TIME: u64 = (24 * 60) * 60;
+/// Represents 1 day in milliseconds
+pub const EXPIRATION_TIME: u64 = ((24 * 60) * 60) * 1000;
 
 impl CacheItem {
     pub fn from(buffer: Vec<u8>) -> CacheItem {
         CacheItem {
             value: buffer.clone(),
-            expires_at: SystemTime::now() + Duration::from_secs(EXPIRATION_TIME),
+            expires_at: SystemTime::now() + Duration::from_millis(EXPIRATION_TIME),
         }
     }
 

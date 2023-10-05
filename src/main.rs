@@ -1,10 +1,12 @@
 use std::error::Error;
 
 use cache::Cache;
+use rusqlite::Connection;
 use tcp::TcpManager;
 
 mod buffer;
 mod cache;
+mod database;
 mod tcp;
 
 #[tokio::main]
